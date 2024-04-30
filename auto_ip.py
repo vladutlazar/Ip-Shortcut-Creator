@@ -17,24 +17,32 @@ df = pd.read_excel(excel_path, sheet_name="IP", nrows=155)  # Read only the firs
 for index, row in df.iterrows():
     pc_name = row.get('Nume Linie', 'Default Value')
     pc_name_sanitized = sanitize_pc_name(str(pc_name))  # Convert to string and sanitize
-    pc_ip = row.get('IP ', 'Default Value')
+    pc_ip_cell = row.get('IP ', 'Default Value')
+
+    # Extract the last IP address from the cell (assuming IP addresses are separated by line breaks)
+    pc_ip_list = pc_ip_cell.splitlines()
+    if pc_ip_list:
+        pc_ip_latest = pc_ip_list[-1]  # Get the last IP address
+
+     # Extract only numbers and dots from the IP address
+    pc_ip_clean = re.sub(r'[^0-9.]', '', pc_ip_latest)
 
     # Defining the target path and the shortcut file
-    target_path = f"\\\\{pc_ip}\d$"
+    target_path = f"\\\\{pc_ip_clean}\d$"
     shortcut_file = f"{pc_name_sanitized}.lnk"  # Use sanitized name
 
     # Skip the row if it contains empty or invalid data
-    if pd.isna(pc_name) or pd.isna(pc_ip):
+    if pd.isna(pc_name) or pd.isna(pc_ip_clean):
         continue
 
     # Defining the location where the shortcuts are created
-    shortcut_folder = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\PC_Prod'
+    shortcut_folder = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.5.PC_Prod'
 
      # Check if the shortcut file already exists
     if not os.path.exists(os.path.join(shortcut_folder, shortcut_file)):
         try:
             # Using subprocess to run a command that creates the shortcut
-            command = f'powershell "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut(\'{os.path.join(shortcut_folder, shortcut_file)}\'); $s.TargetPath = \'{target_path}\'; $s.Description = \'{pc_ip}\'; $s.Save()"'
+            command = f'powershell "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut(\'{os.path.join(shortcut_folder, shortcut_file)}\'); $s.TargetPath = \'{target_path}\'; $s.Description = \'{pc_ip_clean}\'; $s.Save()"'
             subprocess.run(command, shell=True)
             print(f"Shortcut for {pc_name} created successfully!")
         except Exception as e:
