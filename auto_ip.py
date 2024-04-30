@@ -3,31 +3,39 @@ import os
 import subprocess
 import re
 
-# Loading the spreadsheet
-df = pd.read_excel(r'C:\Users\uiv55706\Desktop\IP.xlsx', sheet_name="IP")
-
+# Define a function to sanitize the PC name
 def sanitize_pc_name(pc_name):
-    # Replace invalid characters with underscores
-    sanitized_name = re.sub(r'[^\\w_. -]', '_', pc_name)
-    return sanitized_name
+    # Remove invalid characters (except alphanumeric, underscore, hyphen, space, period, and ampersand)
+    sanitized_name = re.sub(r'[^\w\s.&]', '', pc_name)
+    return sanitized_name.strip()  # Remove leading/trailing spaces
+
+# Loading the spreadsheet and limiting the range to avoid reading beyond line 155
+excel_path = r'C:\Users\uiv55706\Desktop\IP.xlsx'
+df = pd.read_excel(excel_path, sheet_name="IP", nrows=155)  # Read only the first 155 rows
 
 # Iterate over the rows of the DataFrame
 for index, row in df.iterrows():
     pc_name = row.get('Nume Linie', 'Default Value')
-    pc_ip = row.get('IP', 'Default Value')
-    pc_order = row.get('NR Crt', 'Default Value')
-
-    pc_name_sanitized = sanitize_pc_name(pc_name)  # Apply sanitization
+    pc_name_sanitized = sanitize_pc_name(str(pc_name))  # Convert to string and sanitize
+    pc_ip = row.get('IP ', 'Default Value')
 
     # Defining the target path and the shortcut file
-    target_path = f"\\\\{pc_order}"
-    shortcut_file = f"{pc_name}.lnk"
+    target_path = f"\\\\{pc_ip}\d$"  # Use UNC path if applicable
+    shortcut_file = f"{pc_name_sanitized}.lnk"  # Use sanitized name
+
+    # Skip the row if it contains empty or invalid data
+    if pd.isna(pc_name) or pd.isna(pc_ip):
+        continue
 
     # Defining the location where the shortcuts are created
     shortcut_folder = r'C:\Users\uiv55706\Desktop\PC_Prod'
 
-    # Using subprocess to run a command that creates the shortcut
-    command = f'powershell "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut(\'{os.path.join(shortcut_folder, shortcut_file)}\'); $s.TargetPath = \'{target_path}\'; $s.Save()"'
-    subprocess.run(command, shell=True)
+    try:
+        # Using subprocess to run a command that creates the shortcut
+        command = f'powershell "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut(\'{os.path.join(shortcut_folder, shortcut_file)}\'); $s.TargetPath = \'{target_path}\'; $s.Description = \'{pc_ip}\'; $s.Save()"'
+        subprocess.run(command, shell=True)
+        print(f"Shortcut for {pc_name} created successfully!")
+    except Exception as e:
+        print(f"Error creating shortcut for {pc_name}: {str(e)}")
 
-print("Shortcuts created successfully!")
+print("All shortcuts processed.")
