@@ -19,7 +19,7 @@ def get_shortcut_description(shortcut_path):
 
 # Load the Excel data
 excel_path = r'\\vt1.vitesco.com\SMT\didt1002\05_IT_MES\IP_MES.xlsx'
-df = pd.read_excel(excel_path, sheet_name="IP", nrows=155)  # Read only the first 155 rows
+df = pd.read_excel(excel_path, sheet_name="IP", nrows=167)  # Read only the first 155 rows
 
 # Define where shortcuts are created
 shortcut_folder = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.5.PC_Prod'
